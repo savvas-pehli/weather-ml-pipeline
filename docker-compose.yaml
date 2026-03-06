@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  airflow:
+    build: .
+    ports:
+      - "8080:8080"
+    volumes:
+      # This maps your current Windows folder (.) to a folder named /app inside Linux
+      - .:/app 
+    environment:
+      # Tell Airflow exactly where to look for your DAG file inside the container
+      - AIRFLOW__CORE__DAGS_FOLDER=/app/dags
+      - AIRFLOW__CORE__LOAD_EXAMPLES=False
+    # Start the standalone Airflow engine
+    command: standalone

@@ -1,0 +1,50 @@
+# =========================
+# 1. SECURITY & ENVIRONMENT (CRITICAL)
+# =========================
+.env
+*.json
+credentials/*
+
+# =========================
+# 2. DATA PIPELINE STORAGE
+# =========================
+# We never commit data to version control. It bloats the repository.
+data/bronze/*
+data/silver/*
+data/gold/*
+# Keep the folder structure by allowing the directories but ignoring contents
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep
+*.parquet
+*.csv
+
+# =========================
+# 3. LOGS & AUDIT TRAILS
+# =========================
+logs/
+*.log
+*warnings_log*.txt
+*Batch_health_log*.txt
+
+# =========================
+# 4. PYTHON VIRTUAL ENVIRONMENTS
+# =========================
+venv/
+.venv/
+env/
+ENV/
+
+# =========================
+# 5. PYTHON CACHE & ARTIFACTS
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ipynb_checkpoints/
+
+# =========================
+# Serialized model
+# =========================
+*.joblib
