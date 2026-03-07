@@ -16,7 +16,6 @@ os.makedirs(gold_dir_path,exist_ok=True)
 agg_gold_df=gold_df.groupby(pd.Grouper(key='extraction_time',freq='D')).agg(Max_temperature=('temperature','max'),avg_wind_speed=('wind_speed','mean')).reset_index()
 agg_gold_df['high_wind_warning']=agg_gold_df['avg_wind_speed']>6
 
-# 4. Load (Push to BigQuery)
 destination = 'weather_data.daily_weather_features'
 print(f"Pushing Gold features to BigQuery: {gcp_project}.{destination}...")
 
@@ -33,12 +32,12 @@ except NotFound:
     print("⚠️ Dataset not found. Provisioning new dataset...")
     # Define the new dataset
     dataset = bigquery.Dataset(dataset_ref)
-    dataset.location = "EU" # Choose "US" or "EU" based on your preference
+    dataset.location = "EU" 
     
-    # Create the dataset on Google Cloud
+    
     dataset = client.create_dataset(dataset, timeout=30)
     print("✅ Dataset successfully created.")
-# -----------------------------------
+
 
 
 
@@ -51,4 +50,3 @@ try:
     print("✅ Load to BigQuery complete.")
 except Exception as e:
     print(f"❌ CRITICAL FAILURE during BigQuery load:\n{e}")
-#agg_gold_df.to_parquet(os.path.join(gold_dir_path,'aggregations.parquet'))
