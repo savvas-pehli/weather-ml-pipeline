@@ -27,7 +27,6 @@ def get_api_session():
     return session
 
 def extract():
-    # TASK 2: Pull these values from your .env file instead of strings
     api_url = os.getenv("API_URL")
     output_path = os.getenv("RAW_STORAGE_PATH")
     session=get_api_session()
@@ -37,9 +36,9 @@ def extract():
         r.raise_for_status()
         data=r.json()
         now=datetime.now()
-        # TASK 3: Make the request and use .raise_for_status()
+
         print("Success! Saving file...",end='\n\n')
-        # Create the wrapper
+
         enriched_data = {
          "metadata": {
         "source": api_url,
@@ -47,8 +46,7 @@ def extract():
         "schema_version": "1.0"},
         "raw_payload": data
         }
-        # Save logic goes here
-        #Data save 
+
         if not os.path.exists(output_path):
                 os.makedirs(output_path)
         filename = f"weather_data_{now.strftime('%Y%m%d_%H%M%S')}.json"
