@@ -2,7 +2,6 @@ import pandas as pd
 import glob, json
 import os
 from datetime import datetime
-import numpy as np
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -19,8 +18,7 @@ def safe_get(data, keys, default=None):
     return data
 
 def batch_health_summary(nrows,duplicates_num,null_num,output_path):
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    os.makedirs(output_path,exist_ok=True)
     with open(os.path.join(output_path,'Batch_health_log_{}.txt'.format(datetime.now().date())),'a') as f:
         f.write(f'Batch number of rows processed:{nrows} \n')
         f.write(f'Batch number of duplicates found and erased:{duplicates_num} \n')
@@ -49,68 +47,65 @@ def dataframe_creation(data_list:list,health_log_file,output_path):
     silver_df_nrows=silver_df.shape[0]
     batch_health_summary(silver_df_nrows,num_of_duplicates,num_of_nulls,health_log_file)
     silver_df.drop_duplicates(subset=['extraction_time'],keep='last',inplace=True)
-    if not os.path.exists(output_path):
-                    os.makedirs(output_path)
+    os.makedirs(output_path,exist_ok=True)
     silver_df.to_parquet(os.path.join(output_path,'weather_data.parquet'),index=False)
                     
                     
-
-warning_log_file_path=os.getenv('WARNINGS_LOG_PATH')
-health_log_path=os.getenv('HEALTH_LOG_PATH')
-bronze_path=os.getenv('RAW_STORAGE_PATH')
-output_path=os.getenv('SILVER_STORAGE_PATH')
-log_filename = f"warnings_log_{datetime.now().date()}.txt"
-quarantine_path=os.getenv('QUARANTINE_PATH')
-full_log_path = os.path.join(warning_log_file_path, log_filename)
-
-if not os.path.exists(quarantine_path):  
-    os.makedirs(quarantine_path)
+def silver_layer_main_function():
+    
+    warning_log_file_path=os.getenv('WARNINGS_LOG_PATH')
+    health_log_path=os.getenv('HEALTH_LOG_PATH')
+    bronze_path=os.getenv('RAW_STORAGE_PATH')
+    output_path=os.getenv('SILVER_STORAGE_PATH')
+    log_filename = f"warnings_log_{datetime.now().date()}.txt"
+    quarantine_path=os.getenv('QUARANTINE_PATH')
+    full_log_path = os.path.join(warning_log_file_path, log_filename)
+    os.makedirs(quarantine_path,exist_ok=True)
 
 
     
-data_list=[]
-warning_list=[]
-corrupted_files=[]
-for f in glob.glob(f"{os.path.abspath(bronze_path)}/*.json"):
-    weather_dict={}
-    corrupt_file=False
-    with open(f, "rb") as infile:
-        try:
-            result=(json.load(infile))
-            weather_dict['extraction_time']=safe_get(result,['metadata','extracted_at (Time of the extracting location)'])
-            weather_dict['processed_at']=datetime.now()
-            weather_dict['temperature']=safe_get(result,['raw_payload','current_weather','temperature'])
-            weather_dict['wind_speed']=safe_get(result,['raw_payload','current_weather','windspeed'])
-            weather_dict['source_id']='open_weather_v1'
-        except Exception as e:
-            print('Critical error at file {} -> continuing to the next file'.format(os.path.basename(f)))
-            warning_list.append([f,'fatal'])
-            corrupt_file=True
-    if corrupt_file:
-        os.rename(f,os.path.join(quarantine_path,os.path.basename(f)))
-        continue
-    for col in ['temperature','wind_speed']:
-        if weather_dict[col]==None:
-            print(f'Missing data at the file {os.path.basename(f)}')
-            warning_list.append([f,'warning'])
-    if weather_dict['extraction_time']==None:
-        print(f'Missing data from critical column (extraction_time) at file{os.path.basename(f)}')
-        warning_list.append([f,'critical'])
-        os.rename(f,os.path.join(quarantine_path,os.path.basename(f)))           
-        continue
+    data_list=[]
+    warning_list=[]
+    for f in glob.glob(f"{os.path.abspath(bronze_path)}/*.json"):
+        weather_dict={}
+        corrupt_file=False
+        with open(f, "rb") as infile:
+            try:
+                result=(json.load(infile))
+                weather_dict['extraction_time']=safe_get(result,['metadata','extracted_at (Time of the extracting location)'])
+                weather_dict['processed_at']=datetime.now()
+                weather_dict['temperature']=safe_get(result,['raw_payload','current_weather','temperature'])
+                weather_dict['wind_speed']=safe_get(result,['raw_payload','current_weather','windspeed'])
+                weather_dict['source_id']='open_weather_v1'
+            except Exception as e:
+                print('Critical error at file {} -> continuing to the next file'.format(os.path.basename(f)))
+                warning_list.append([f,'fatal'])
+                corrupt_file=True
+        if corrupt_file:
+            os.rename(f,os.path.join(quarantine_path,os.path.basename(f)))
+            continue
+        for col in ['temperature','wind_speed']:
+            if weather_dict[col]==None:
+                print(f'Missing data at the file {os.path.basename(f)}')
+                warning_list.append([f,'warning'])
+        if weather_dict['extraction_time']==None:
+            print(f'Missing data from critical column (extraction_time) at file{os.path.basename(f)}')
+            warning_list.append([f,'critical'])
+            os.rename(f,os.path.join(quarantine_path,os.path.basename(f)))           
+            continue
     
-    data_list.append(weather_dict)
+        data_list.append(weather_dict)
 
-#if corrupted_files:
-#    for file in corrupted_files:
-#        os.rename(file,os.path.join(quarantine_path,os.path.basename(file)))
+    if warning_list:
+        os.makedirs(warning_log_file_path,exist_ok=True)
+        warning_log(full_log_path,warning_list)
+    if len(data_list)>0:
+        dataframe_creation(data_list,health_log_path,output_path)
+    else:
+        print('No valid data found for today')
+    
 
-if warning_list:
-    if not os.path.exists(warning_log_file_path):
-        os.mkdir(warning_log_file_path)
-    warning_log(full_log_path,warning_list)
-if len(data_list)>0:
-    dataframe_creation(data_list,health_log_path,output_path)
-else:
-    print('No valid data found for today')
+if __name__=="__main__":
+    silver_layer_main_function()
+    
 
