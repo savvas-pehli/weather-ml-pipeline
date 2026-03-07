@@ -101,9 +101,6 @@ for f in glob.glob(f"{os.path.abspath(bronze_path)}/*.json"):
     
     data_list.append(weather_dict)
 
-#if corrupted_files:
-#    for file in corrupted_files:
-#        os.rename(file,os.path.join(quarantine_path,os.path.basename(file)))
 
 if warning_list:
     if not os.path.exists(warning_log_file_path):
