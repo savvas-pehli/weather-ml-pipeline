@@ -3,6 +3,7 @@ import glob, json
 import os
 from datetime import datetime
 from dotenv import load_dotenv
+import shutil
 
 load_dotenv()
 def safe_get(data, keys, default=None):
@@ -48,7 +49,8 @@ def dataframe_creation(data_list:list,health_log_file,output_path):
     batch_health_summary(silver_df_nrows,num_of_duplicates,num_of_nulls,health_log_file)
     silver_df.drop_duplicates(subset=['extraction_time'],keep='last',inplace=True)
     os.makedirs(output_path,exist_ok=True)
-    silver_df.to_parquet(os.path.join(output_path,'weather_data.parquet'),index=False)
+    batch_filename = f"weather_batch_{datetime.now().strftime('%Y%m%d_%H%M%S')}.parquet"
+    silver_df.to_parquet(os.path.join(output_path,batch_filename),index=False)
                     
                     
 def silver_layer_main_function():
@@ -60,12 +62,16 @@ def silver_layer_main_function():
     log_filename = f"warnings_log_{datetime.now().date()}.txt"
     quarantine_path=os.getenv('QUARANTINE_PATH')
     full_log_path = os.path.join(warning_log_file_path, log_filename)
+    archive_path=os.getenv('ARCHIVE_PATH')
     os.makedirs(quarantine_path,exist_ok=True)
+    os.makedirs(archive_path,exist_ok=True)
 
 
     
     data_list=[]
     warning_list=[]
+    
+    if not 
     for f in glob.glob(f"{os.path.abspath(bronze_path)}/*.json"):
         weather_dict={}
         corrupt_file=False
@@ -93,8 +99,9 @@ def silver_layer_main_function():
             warning_list.append([f,'critical'])
             os.rename(f,os.path.join(quarantine_path,os.path.basename(f)))           
             continue
-    
         data_list.append(weather_dict)
+        os.rename(f,os.path.join(archive_path,os.path.basename(f)))    
+
 
     if warning_list:
         os.makedirs(warning_log_file_path,exist_ok=True)

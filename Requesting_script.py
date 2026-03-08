@@ -47,8 +47,7 @@ def extract():
         "raw_payload": data
         }
 
-        if not os.path.exists(output_path):
-                os.makedirs(output_path)
+        os.makedirs(output_path,exist_ok=True)
         filename = f"weather_data_{now.strftime('%Y%m%d_%H%M%S')}.json"
         full_path = os.path.join(output_path, filename)
         with open(full_path, 'w') as f:
@@ -68,6 +67,7 @@ def extract():
         print(f'Timestamp [{now.strftime("%Y%m%d_%H%M%S")}] Operating system error: {err}')
     
     except Exception as err:
+
         print(f'Timestamp [{now.strftime("%Y%m%d_%H%M%S")}] PIPELINE FAILURE: {err}')
 
 if __name__ == "__main__":

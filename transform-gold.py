@@ -3,19 +3,31 @@ import os
 from dotenv import load_dotenv
 from google.cloud import bigquery
 from google.api_core.exceptions import NotFound
+import glob
+import shutil
 load_dotenv()
 
 def gold_layer_main_function():
     
     gcp_project = os.getenv('GCP_PROJECT_ID')    
-
-    data_path=os.path.join(os.getenv('SILVER_STORAGE_PATH'),'weather_data.parquet')
-    print(f"Reading Silver data from {data_path}...")
-    gold_df=pd.read_parquet(data_path)    
-
-    print("Aggregating daily features...")
+    silver_storage_path=os.getenv('SILVER_STORAGE_PATH')
     gold_dir_path=os.getenv('GOLD_LAYER_PATH')
     os.makedirs(gold_dir_path,exist_ok=True)
+    data_path=os.path.join(os.path.abspath(silver_storage_path),"*.parquet")
+    raw_dataframe=[]
+    file_list = glob.glob(data_path)
+    
+    if not file_list:
+        print("⚠️ No new Silver batches found. Exiting gracefully.")
+        return
+
+    for file in file_list:
+        print(f"Reading Silver data from {file}...")
+        gold_df=pd.read_parquet(file)
+        raw_dataframe.append(gold_df)    
+    
+    gold_df=pd.concat(raw_dataframe,ignore_index=True)
+    print("Aggregating daily features...")
     agg_gold_df=gold_df.groupby(pd.Grouper(key='extraction_time',freq='D')).agg(Max_temperature=('temperature','max'),avg_wind_speed=('wind_speed','mean')).reset_index()
     agg_gold_df['high_wind_warning']=agg_gold_df['avg_wind_speed']>6    
 
@@ -43,9 +55,13 @@ def gold_layer_main_function():
         agg_gold_df.to_gbq(
             destination_table=destination,
             project_id=gcp_project,
-            if_exists='replace'
+            if_exists='append'
         )
         print("✅ Load to BigQuery complete.")
+        silver_archive_path=os.getenv("SILVER_ARCHIVE_PATH")
+        os.makedirs(silver_archive_path,exist_ok=True)
+        for file in file_list:
+            shutil.move(file, os.path.join(silver_archive_path, os.path.basename(file)))
     except Exception as e:
         print(f"❌ CRITICAL FAILURE during BigQuery load:\n{e}")
         
