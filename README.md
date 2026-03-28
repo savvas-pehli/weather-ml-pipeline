@@ -1,4 +1,4 @@
-# ⚡ Automated MLOps & Data Pipeline (Medallion Architecture)
+# Automated MLOps & Data Pipeline (Medallion Architecture)
 
 ## Overview
 This repository contains an end-to-end, containerized Data Engineering and Machine Learning pipeline. It is designed to autonomously ingest raw external API data, process it through a strict Medallion Architecture (Bronze, Silver, Gold), store it in a cloud data warehouse, and utilize it to train a serialized Machine Learning classification model.
