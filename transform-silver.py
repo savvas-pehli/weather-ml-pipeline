@@ -71,7 +71,6 @@ def silver_layer_main_function():
     data_list=[]
     warning_list=[]
     
-    if not 
     for f in glob.glob(f"{os.path.abspath(bronze_path)}/*.json"):
         weather_dict={}
         corrupt_file=False
