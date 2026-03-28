@@ -5,9 +5,16 @@ from datetime import datetime
 from dotenv import load_dotenv
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+import logging
 
 # Load environment variables from .env file
 load_dotenv()
+logging.basicConfig(level=logging.DEBUG,
+                    format='%(asctime)s - %(levelname)s - %(message)s')
+
+class BronzeExtractionError(Exception):
+    """Error if the bronze layer fails completly"""
+    pass
 
 def get_api_session():
     """
@@ -31,13 +38,14 @@ def extract():
     output_path = os.getenv("RAW_STORAGE_PATH")
     session=get_api_session()
     try:
-        print(f"Timestamp [{datetime.now().strftime('%Y%m%d_%H%M%S')}] Attempting to fetch data...")
+        logging.info(f"Timestamp [{datetime.now().strftime('%Y%m%d_%H%M%S')}] Attempting to fetch data...")
+        #print(f"Timestamp [{datetime.now().strftime('%Y%m%d_%H%M%S')}] Attempting to fetch data...")
         r=session.get(url=api_url)
         r.raise_for_status()
         data=r.json()
         now=datetime.now()
 
-        print("Success! Saving file...",end='\n\n')
+        logging.info("Success! Saving file...",end='\n\n')
 
         enriched_data = {
          "metadata": {
@@ -54,21 +62,14 @@ def extract():
             json.dump(enriched_data, f)
             
             
-    except requests.exceptions.HTTPError as err:
-        print(f'Timestamp [{now.strftime("%Y%m%d_%H%M%S")}] HTTP Error occurred: {err}')
-    
-    except requests.exceptions.ConnectionError as err:
-        print(f'Timestamp [{now.strftime("%Y%m%d_%H%M%S")}] Failing infrastructure error: {err}')
-    
-    except requests.exceptions.JSONDecodeError as err:
-        print(f'Timestamp [{now.strftime("%Y%m%d_%H%M%S")}] JSON error: {err}')
-    
-    except OSError as err:
-        print(f'Timestamp [{now.strftime("%Y%m%d_%H%M%S")}] Operating system error: {err}')
+    except requests.exceptions.RequestException as err:
+        logging.error(f'Error occured: {err}')
+        raise BronzeExtractionError("Could not extract bronze layer file") from err
     
     except Exception as err:
-
-        print(f'Timestamp [{now.strftime("%Y%m%d_%H%M%S")}] PIPELINE FAILURE: {err}')
+        logging.error(f'Error occured: {err}')
+        raise BronzeExtractionError("Critical Failure: Could not extract bronze layer file") from err
+    
 
 if __name__ == "__main__":
     extract()
