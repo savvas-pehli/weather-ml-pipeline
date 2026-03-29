@@ -45,7 +45,7 @@ def extract():
         data=r.json()
         now=datetime.now()
 
-        logging.info("Success! Saving file...",end='\n\n')
+        logging.info("Success! Saving file...")
 
         enriched_data = {
          "metadata": {
