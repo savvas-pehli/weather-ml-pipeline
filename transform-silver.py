@@ -62,7 +62,7 @@ def silver_layer_main_function():
     log_filename = f"warnings_log_{datetime.now().date()}.txt"
     quarantine_path=os.getenv('QUARANTINE_PATH')
     full_log_path = os.path.join(warning_log_file_path, log_filename)
-    archive_path=os.getenv('ARCHIVE_PATH')
+    archive_path=os.getenv('SILVER_ARCHIVE_PATH')
     os.makedirs(quarantine_path,exist_ok=True)
     os.makedirs(archive_path,exist_ok=True)
 
